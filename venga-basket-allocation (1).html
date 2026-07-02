@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Venga – Basket Allocation</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --orange: #E8622A;
+  --bg:     #F2F1EE;
+  --card:   #FFFFFF;
+  --text:   #111111;
+  --sub:    #888888;
+  --border: #E8E5DF;
+  --green:  #2ECC8A;
+}
+body {
+  background: #C0BEB9;
+  display: flex; justify-content: center; align-items: flex-start;
+  min-height: 100vh; padding: 32px 16px 48px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+}
+.phone {
+  width: 390px; min-height: 844px;
+  background: var(--bg);
+  border-radius: 50px;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.07);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  position: relative;
+}
+
+/* Status */
+.status {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 28px 0;
+  font-size: 15px; font-weight: 600; color: var(--text);
+  background: var(--bg); flex-shrink: 0;
+}
+
+/* Nav */
+.nav {
+  display: flex; align-items: center;
+  padding: 10px 20px 12px;
+  position: relative; flex-shrink: 0;
+}
+.back-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--card); border: none;
+  font-size: 22px; color: var(--text); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.09);
+}
+.nav-title {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font-size: 17px; font-weight: 600; color: var(--text); letter-spacing: -0.3px;
+}
+
+/* Scroll body */
+.body {
+  flex: 1; overflow-y: auto; padding: 0 20px 140px;
+  -webkit-overflow-scrolling: touch;
+}
+.body::-webkit-scrollbar { display: none; }
+
+/* Bundle name */
+.bundle-name-row {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.bundle-label { font-size: 13px; color: var(--sub); margin-bottom: 2px; }
+.bundle-title { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+.edit-name-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--sub); padding: 4px; margin-top: 4px;
+}
+.bundle-desc {
+  font-size: 13px; color: var(--sub); line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+/* Donut */
+.chart-wrap {
+  display: flex; justify-content: center;
+  margin-bottom: 20px; position: relative;
+}
+#donutSvg { overflow: visible; filter: drop-shadow(0 4px 16px rgba(0,0,0,0.08)); }
+.donut-center {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center; pointer-events: none;
+}
+.d-pct {
+  font-size: 30px; font-weight: 800; color: var(--text);
+  letter-spacing: -1.5px; line-height: 1;
+}
+.d-label { font-size: 12px; color: var(--sub); margin-top: 3px; }
+
+/* Heading */
+.alloc-heading {
+  font-size: 24px; font-weight: 800; color: var(--text);
+  letter-spacing: -0.8px; margin-bottom: 14px;
+}
+
+/* Preset chips */
+.chips {
+  display: flex; gap: 8px; margin-bottom: 20px;
+  overflow-x: auto; padding-bottom: 2px;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex-shrink: 0; padding: 7px 16px; border-radius: 20px;
+  background: var(--card); border: 1.5px solid var(--border);
+  font-size: 13px; font-weight: 500; color: var(--text);
+  cursor: pointer; white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: all 0.15s;
+}
+.chip:active { background: rgba(232,98,42,0.08); border-color: var(--orange); color: var(--orange); }
+
+/* Asset rows */
+.asset-row {
+  margin-bottom: 20px;
+}
+.asset-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.asset-left { display: flex; align-items: center; gap: 10px; }
+.token-icon {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: white; flex-shrink: 0;
+}
+.asset-name {
+  font-size: 16px; font-weight: 600; color: var(--text); letter-spacing: -0.2px;
+}
+.lock-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: #EBEBEB; border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.lock-btn.locked { background: rgba(232,98,42,0.12); }
+.lock-btn:active { transform: scale(0.9); }
+
+/* Bar + controls */
+.bar-controls { display: flex; align-items: center; gap: 10px; }
+.bar-wrap { flex: 1; }
+.bar-pct-label {
+  font-size: 14px; font-weight: 600; color: var(--text);
+  margin-bottom: 6px; letter-spacing: -0.2px;
+}
+.bar-track {
+  height: 4px; background: var(--border); border-radius: 4px; overflow: hidden;
+}
+.bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s cubic-bezier(0.34,1.2,0.64,1); }
+
+.nudge-group { display: flex; gap: 8px; flex-shrink: 0; }
+.nudge {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--card); border: 1.5px solid var(--border);
+  font-size: 20px; font-weight: 400; color: var(--text);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  transition: background 0.12s, transform 0.1s;
+  line-height: 1;
+}
+.nudge:active { background: var(--border); transform: scale(0.9); }
+.nudge:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.divider { height: 1px; background: var(--border); margin: 4px 0 20px; }
+
+/* CTA */
+.cta-wrap {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 12px 20px 40px;
+  background: linear-gradient(to top, var(--bg) 75%, transparent);
+}
+.cta-btn {
+  width: 100%; padding: 18px; border-radius: 50px;
+  background: var(--orange); border: none;
+  color: white; font-size: 17px; font-weight: 700;
+  cursor: pointer; letter-spacing: -0.2px;
+  box-shadow: 0 8px 24px rgba(232,98,42,0.3);
+  transition: opacity 0.2s, transform 0.1s, background 0.15s;
+}
+.cta-btn:disabled { opacity: 0.4; box-shadow: none; cursor: not-allowed; }
+.cta-btn:not(:disabled):active { transform: scale(0.98); background: #c94f1e; }
+
+/* Name edit overlay */
+.name-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex; flex-direction: column; justify-content: flex-end;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+  border-radius: 50px; overflow: hidden; z-index: 30;
+}
+.name-overlay.show { opacity: 1; pointer-events: all; }
+
+.name-sheet {
+  background: var(--card);
+  border-radius: 28px 28px 0 0;
+  padding: 10px 20px 48px;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.34,1.1,0.64,1);
+}
+.name-overlay.show .name-sheet { transform: translateY(0); }
+
+.sheet-handle {
+  width: 36px; height: 4px; background: var(--border);
+  border-radius: 2px; margin: 0 auto 18px;
+}
+.sheet-title {
+  font-size: 17px; font-weight: 700; color: var(--text);
+  letter-spacing: -0.3px; margin-bottom: 16px;
+}
+
+.name-input-wrap {
+  position: relative; margin-bottom: 20px;
+}
+.name-input {
+  width: 100%; padding: 14px 48px 14px 16px;
+  border-radius: 14px; border: 1.5px solid var(--border);
+  background: var(--bg); font-size: 17px; font-weight: 600;
+  color: var(--text); outline: none; letter-spacing: -0.3px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+.name-input:focus { border-color: var(--orange); }
+.name-counter {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  font-size: 12px; color: var(--sub);
+}
+
+.name-suggestions { margin-bottom: 24px; }
+.suggest-label { font-size: 12px; color: var(--sub); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+.suggest-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.suggest-chip {
+  padding: 8px 14px; border-radius: 20px;
+  background: var(--bg); border: 1.5px solid var(--border);
+  font-size: 14px; font-weight: 500; color: var(--text);
+  cursor: pointer; transition: all 0.15s;
+}
+.suggest-chip:active { background: rgba(232,98,42,0.1); border-color: var(--orange); color: var(--orange); }
+
+.name-save-btn {
+  width: 100%; padding: 17px; border-radius: 50px;
+  background: var(--orange); border: none;
+  color: white; font-size: 17px; font-weight: 700;
+  cursor: pointer; letter-spacing: -0.2px;
+  box-shadow: 0 6px 20px rgba(232,98,42,0.3);
+  transition: opacity 0.15s, transform 0.1s;
+}
+.name-save-btn:active { transform: scale(0.98); }
+
+.alloc-warning {
+  font-size: 13px;
+  color: #E84242;
+  margin-bottom: 14px;
+}
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- Status -->
+  <div class="status">
+    <span>9:41</span>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <svg width="17" height="11" fill="#111"><rect x="0" y="3" width="3" height="8" rx="1"/><rect x="4.5" y="2" width="3" height="9" rx="1"/><rect x="9" y="0" width="3" height="11" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1" opacity=".3"/></svg>
+      <svg width="16" height="12" fill="#111"><path d="M8 2.2C10.5 2.2 12.7 3.3 14.1 5L15.4 3.6C13.5 1.5 10.9.3 8 .3 5.1.3 2.5 1.5.6 3.6L1.9 5C3.3 3.3 5.5 2.2 8 2.2Z"/><path d="M8 5.4C9.8 5.4 11.4 6.2 12.4 7.4L13.8 6C12.3 4.5 10.2 3.6 8 3.6S3.7 4.5 2.2 6L3.6 7.4C4.6 6.2 6.2 5.4 8 5.4Z"/><circle cx="8" cy="10.5" r="1.5"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="22" height="10" rx="3" stroke="#111" stroke-width="1.2" fill="none"/><rect x="22.5" y="3.5" width="2" height="5" rx="1" fill="#111" opacity=".4"/><rect x="1.2" y="2.2" width="17" height="7.6" rx="2" fill="#111"/></svg>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div class="nav">
+    <button class="back-btn">‹</button>
+    <span class="nav-title">Basket allocation</span>
+  </div>
+
+  <!-- Scrollable body -->
+  <div class="body">
+
+    <!-- Bundle name -->
+    <div class="bundle-name-row" onclick="openNameEdit()" style="cursor:pointer;">
+      <div>
+        <div class="bundle-label">Bundle name</div>
+        <div class="bundle-title" id="bundleTitle">Popular</div>
+      </div>
+      <button class="edit-name-btn" onclick="openNameEdit()">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M13 2L16 5L6 15H3V12L13 2Z" stroke="#888" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="bundle-desc">Setting a name to this bundle allows you to name and reuse this exact bundle with the asset allocations you set.</div>
+
+    <!-- Donut chart -->
+    <div class="chart-wrap">
+      <svg id="donutSvg" width="210" height="210" viewBox="0 0 210 210"></svg>
+      <div class="donut-center">
+        <div class="d-pct" id="dPct">0%</div>
+        <div class="d-label">Total allocation</div>
+      </div>
+    </div>
+
+    <!-- Heading -->
+    <div class="alloc-heading" id="allocHeading">€100 allocation split</div>
+
+    <!-- Warning -->
+    <div class="alloc-warning" id="allocWarning" style="display:none;">
+      ⚠️ Allocation must equal 100% to continue
+    </div>
+
+    <!-- Preset chips -->
+    <div class="chips">
+      <button class="chip" onclick="applyPreset([40,40,20])">Equal split</button>
+      <button class="chip" onclick="applyPreset([60,30,10])">60/30/10</button>
+      <button class="chip" onclick="applyPreset([80,15,5])">BTC Heavy</button>
+    </div>
+
+    <!-- Asset list -->
+    <div id="assetList"></div>
+
+  </div>
+
+
+  <!-- Name edit overlay -->
+  <div class="name-overlay" id="nameOverlay" onclick="overlayBgTap(event)">
+    <div class="name-sheet" id="nameSheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Bundle name</div>
+      <div class="name-input-wrap">
+        <input class="name-input" id="nameInput" type="text" maxlength="30" placeholder="e.g. My crypto mix" />
+        <span class="name-counter" id="nameCounter">0/30</span>
+      </div>
+      <div class="name-suggestions">
+        <div class="suggest-label">Suggestions</div>
+        <div class="suggest-chips">
+          <button class="suggest-chip" onclick="setSuggest('The Popular')">The Popular</button>
+          <button class="suggest-chip" onclick="setSuggest('My Mix')">My Mix</button>
+          <button class="suggest-chip" onclick="setSuggest('Long Term')">Long Term</button>
+          <button class="suggest-chip" onclick="setSuggest('Moon Bag')">Moon Bag</button>
+        </div>
+      </div>
+      <button class="name-save-btn" id="nameSaveBtn" onclick="saveName()">Save name</button>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-wrap">
+    <button class="cta-btn" id="ctaBtn" disabled>Save</button>
+  </div>
+
+</div>
+
+<script>
+const TOKENS = [
+  { name:'Bitcoin',  ticker:'BTC', color:'#F7931A', icon:'₿',  pct:40, locked:false },
+  { name:'Ethereum', ticker:'ETH', color:'#627EEA', icon:'Ξ',  pct:40, locked:false },
+  { name:'HYPE',     ticker:'HYPE',color:'#111111', icon:'H',  pct:20, locked:false },
+];
+
+const INVEST = 100;
+
+// ── Redistribute ──
+function redistribute(changedIdx, newVal) {
+  TOKENS[changedIdx].pct = newVal;
+  const others = TOKENS.filter((_,i) => i !== changedIdx && !TOKENS[i].locked);
+  const fixedSum = TOKENS.reduce((s,t,i) => (i === changedIdx || t.locked) ? s + t.pct : s, 0);
+  const pool = Math.max(0, 100 - fixedSum);
+  if (!others.length) return;
+  const othersSum = others.reduce((s,t) => s + t.pct, 0);
+  if (othersSum === 0) {
+    const each = Math.floor(pool / others.length);
+    let rem = pool - each * others.length;
+    others.forEach((t,i) => t.pct = each + (i < rem ? 1 : 0));
+  } else {
+    let given = 0;
+    others.forEach((t,i) => {
+      if (i < others.length - 1) { const s = Math.round(t.pct / othersSum * pool); t.pct = s; given += s; }
+      else t.pct = pool - given;
+    });
+  }
+  TOKENS.forEach(t => t.pct = Math.max(0, Math.min(100, t.pct)));
+}
+
+function applyPreset(pcts) {
+  TOKENS.forEach((t,i) => { t.locked = false; t.pct = pcts[i] ?? 0; });
+  render();
+}
+
+function toggleLock(idx) {
+  TOKENS[idx].locked = !TOKENS[idx].locked;
+  // auto-fill if only one free
+  const free = TOKENS.filter(t => !t.locked);
+  if (free.length === 1) {
+    const lockedSum = TOKENS.filter(t => t.locked).reduce((s,t) => s+t.pct, 0);
+    free[0].pct = Math.max(0, 100 - lockedSum);
+  }
+  render();
+}
+
+function nudge(idx, delta) {
+  if (TOKENS[idx].locked) return;
+  const nv = Math.max(0, Math.min(100, TOKENS[idx].pct + delta));
+  redistribute(idx, nv);
+  render();
+}
+
+// ── Render ──
+function render() {
+  renderDonut();
+  renderList();
+  renderCTA();
+}
+
+function renderDonut() {
+  const svg = document.getElementById('donutSvg');
+  svg.innerHTML = '';
+  const cx=105, cy=105, R=90, r=64;
+  const total = TOKENS.reduce((s,t) => s+t.pct, 0);
+
+  // Background ring
+  const bg = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  bg.setAttribute('cx',cx); bg.setAttribute('cy',cy);
+  bg.setAttribute('r',(R+r)/2); bg.setAttribute('fill','none');
+  bg.setAttribute('stroke','#E8E5DF'); bg.setAttribute('stroke-width', R-r);
+  svg.appendChild(bg);
+
+  // Segments
+  const segs = [...TOKENS.map((t,i)=>({...t,idx:i}))];
+  const unalloc = Math.max(0, 100 - total);
+  if (unalloc > 0) segs.push({ pct:unalloc, color:'#E0DDD8', icon:'', idx:-1 });
+
+  const gap = 0.02;
+  let angle = -Math.PI / 2;
+
+  segs.forEach(seg => {
+    if (seg.pct <= 0) return;
+    const sweep = (seg.pct/100) * 2*Math.PI - gap;
+    const end = angle + sweep;
+
+    const x1=cx+R*Math.cos(angle), y1=cy+R*Math.sin(angle);
+    const x2=cx+R*Math.cos(end),   y2=cy+R*Math.sin(end);
+    const x3=cx+r*Math.cos(end),   y3=cy+r*Math.sin(end);
+    const x4=cx+r*Math.cos(angle), y4=cy+r*Math.sin(angle);
+    const large = sweep > Math.PI ? 1 : 0;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',`M${x1},${y1} A${R},${R},0,${large},1,${x2},${y2} L${x3},${y3} A${r},${r},0,${large},0,${x4},${y4} Z`);
+    path.setAttribute('fill', seg.color);
+    svg.appendChild(path);
+
+    // Icon on segment
+    if (seg.pct >= 10 && seg.icon) {
+      const mid = angle + sweep/2;
+      const ir = (R+r)/2;
+      const ix = cx + ir*Math.cos(mid);
+      const iy = cy + ir*Math.sin(mid);
+
+      const circ = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      circ.setAttribute('cx',ix); circ.setAttribute('cy',iy); circ.setAttribute('r',13);
+      circ.setAttribute('fill','rgba(255,255,255,0.18)');
+      svg.appendChild(circ);
+
+      const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x',ix); txt.setAttribute('y',iy+1);
+      txt.setAttribute('text-anchor','middle'); txt.setAttribute('dominant-baseline','middle');
+      txt.setAttribute('fill','white'); txt.setAttribute('font-size','14');
+      txt.setAttribute('font-weight','600');
+      txt.textContent = seg.icon;
+      svg.appendChild(txt);
+    }
+
+    angle = end + gap;
+  });
+
+  // Update centre
+  const pctEl = document.getElementById('dPct');
+  pctEl.textContent = total + '%';
+  pctEl.style.color = total === 100 ? '#2ECC8A' : '#E84242';
+}
+
+function renderList() {
+  const list = document.getElementById('assetList');
+  list.innerHTML = '';
+  const freeCount = TOKENS.filter(t=>!t.locked).length;
+
+  TOKENS.forEach((t, idx) => {
+    const isOnlyFree = !t.locked && freeCount === 1;
+    const euroVal = ((t.pct / 100) * INVEST).toFixed(0);
+
+    const row = document.createElement('div');
+    row.className = 'asset-row';
+    row.innerHTML = `
+      <div class="asset-top">
+        <div class="asset-left">
+          <div class="token-icon" style="background:${t.color}">${t.icon}</div>
+          <span class="asset-name">${t.name}</span>
+        </div>
+        <button class="lock-btn ${t.locked?'locked':''}" onclick="toggleLock(${idx})">
+          ${t.locked
+            ? `<svg width="14" height="16" viewBox="0 0 14 16" fill="none"><rect x="1" y="7" width="12" height="8" rx="2" stroke="#E8622A" stroke-width="1.4"/><path d="M4 7V5a3 3 0 016 0v2" stroke="#E8622A" stroke-width="1.4" stroke-linecap="round"/></svg>`
+            : `<svg width="14" height="16" viewBox="0 0 14 16" fill="none"><rect x="1" y="7" width="12" height="8" rx="2" stroke="#999" stroke-width="1.4"/><path d="M4 7V4a3 3 0 016 0" stroke="#999" stroke-width="1.4" stroke-linecap="round"/></svg>`
+          }
+        </button>
+      </div>
+      <div class="bar-controls">
+        <div class="bar-wrap">
+          <div class="bar-pct-label">${t.pct}% <span style="color:var(--sub);font-weight:400;">(€${euroVal})</span></div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${t.pct}%;background:${t.color}"></div>
+          </div>
+        </div>
+        <div class="nudge-group">
+          <button class="nudge" onclick="nudge(${idx},-5)" ${(t.locked||isOnlyFree)?'disabled':''}>−</button>
+          <button class="nudge" onclick="nudge(${idx},5)"  ${(t.locked||isOnlyFree)?'disabled':''}>+</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function renderCTA() {
+  const btn = document.getElementById('ctaBtn');
+  const warning = document.getElementById('allocWarning');
+  const total = TOKENS.reduce((s,t)=>s+t.pct,0);
+  if (total === 100) {
+    btn.disabled = false;
+    btn.textContent = 'Save';
+    warning.style.display = 'none';
+  } else {
+    btn.disabled = true;
+    btn.textContent = total < 100 ? `${100-total}% left to allocate` : `Over by ${total-100}%`;
+    warning.style.display = 'block';
+    warning.textContent = total < 100
+      ? `Total allocation must be 100% in order to save.`
+      : `Total allocation must be 100% in order to save.`;
+  }
+}
+
+render();
+
+// ── Name editing ──
+function openNameEdit() {
+  const input = document.getElementById('nameInput');
+  input.value = document.getElementById('bundleTitle').textContent;
+  updateCounter();
+  document.getElementById('nameOverlay').classList.add('show');
+  setTimeout(() => input.focus(), 350);
+}
+
+function overlayBgTap(e) {
+  if (e.target === document.getElementById('nameOverlay')) closeNameEdit();
+}
+
+function closeNameEdit() {
+  document.getElementById('nameOverlay').classList.remove('show');
+  document.getElementById('nameInput').blur();
+}
+
+function saveName() {
+  const val = document.getElementById('nameInput').value.trim();
+  if (val) document.getElementById('bundleTitle').textContent = val;
+  closeNameEdit();
+}
+
+function setSuggest(name) {
+  document.getElementById('nameInput').value = name;
+  updateCounter();
+}
+
+function updateCounter() {
+  const input = document.getElementById('nameInput');
+  document.getElementById('nameCounter').textContent = input.value.length + '/30';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('nameInput').addEventListener('input', updateCounter);
+});
+
+</script>
+</body>
+</html>
